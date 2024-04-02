@@ -5,7 +5,7 @@ const FormData = require('form-data');
 const cors = require('cors');
 const fs = require('fs');
 const app = express();
-const port = 3003;
+const port = 10000;
 require('dotenv').config();
 
 // Setup multer for file uploads
