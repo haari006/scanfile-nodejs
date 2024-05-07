@@ -56,39 +56,53 @@ app.get('/poll-status/:id', async (req, res) => {
     }
 });
 
-const pollUntilStatusChanges = async (id, interval = 3000, timeout = 30000) => {
-    const startTime = Date.now();
-  
-    return new Promise((resolve, reject) => {
-      const poll = async () => {
-        if (Date.now() - startTime >= timeout) {
-          reject(new Error('Polling timed out'));
-          return;
-        }
-  
-        try {
-            const response = await axios.get(`https://www.hybrid-analysis.com/api/v2/overview/${id}`, {
-                headers: {
-                    'api-key': apiKey,
-                },
-            });
-            const data = response.data;
-            const scanners = data.scanners || []; 
-            const allClear = scanners.every(scanner => scanner.status !== 'in-queue');
+const pollUntilStatusChanges = async (
+  id,
+  interval = 3000,
+  timeout = 300000
+) => {
+  const startTime = Date.now();
 
-            if (allClear) {
-                resolve(data);
-            } else {
-                setTimeout(poll, interval);
-            }
-        } catch (error) {
-            reject(error);
+  return new Promise((resolve, reject) => {
+    const poll = async () => {
+      if (Date.now() - startTime >= timeout) {
+        reject(new Error("Polling timed out"));
+        return;
+      }
+
+      try {
+        const response = await axios.get(
+          `https://www.hybrid-analysis.com/api/v2/overview/${id}`,
+          {
+            headers: {
+              "api-key": apiKey,
+            },
+          }
+        );
+
+        const data = response.data;
+
+        const scanners = data.scanners || [];
+        const remainingScannersInQueue = scanners.filter(
+          (scanner) => scanner.status === "in-queue"
+        );
+
+        if (remainingScannersInQueue.length === 0) {
+          resolve(data);
+        } else {
+          console.log(
+            `Remaining scanners in queue: ${remainingScannersInQueue.length}`
+          );
+          setTimeout(poll, interval);
         }
-      };
-  
-      poll();
-    });
-};
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    poll();
+  });
+};  
 
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
